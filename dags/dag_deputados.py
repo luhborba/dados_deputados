@@ -4,6 +4,7 @@ from include.extract import receber_lista_id_deputados, dados_deputados_por_id
 import requests
 import zipfile
 from io import BytesIO
+import logging
 
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -120,36 +121,47 @@ extract_deputados_task = PythonOperator(
     dag=dag
 )
 
-def capturando_dados_gastos():
-    url_gastos_2024 = "https://www.camara.leg.br/cotas/Ano-2024.csv.zip"
+
+# 
+def capturando_dados_gastos_2023():
+    
     ult_gastos_2023 = "https://www.camara.leg.br/cotas/Ano-2023.csv.zip"
-
-    def baixar_arquivos_zip(url):
-        response = requests.get(url)
+    logging.warning(ult_gastos_2023)
+    try:
+        response = requests.get(ult_gastos_2023)
         if response.status_code == 200:
-            with zipfile.ZipFile(BytesIO(response.content), "r") as zip_ref:
-                arquivo = zip_ref.namelist()[0]  # Obtém o nome do arquivo dentro do zip
-                return zip_ref.read(arquivo)  # Retorna o conteúdo do arquivo
-        else:
-            print(f"Falha ao baixar o arquivo na url {url}: Código de status: {response.status_code}")
-            return None
+            csv_data = response.content.decode('utf-8')
+            return csv_data
+    except Exception as e:
+            logging.error(e)
 
-    dados_gastos_2024 = baixar_arquivos_zip(url_gastos_2024)
-    dados_gastos_2023 = baixar_arquivos_zip(ult_gastos_2023)
-
-    gastos_2023 = pd.read_csv(dados_gastos_2023)
-    gastos_2024 = pd.read_csv(dados_gastos_2024)
-
-    gastos = pd.concat(gastos_2023, gastos_2024)
-
-
-    return gastos
-
-extract_gastos_task = PythonOperator(
-    task_id='extract_gastos_task',
-    python_callable=capturando_dados_gastos,
+extract_gastos_2023_task = PythonOperator(
+    task_id='extract_gastos_2023',
+    python_callable=capturando_dados_gastos_2023,
     provide_context=True,
     dag=dag
 )
 
-[create_table_gastos_task, create_table_deputados_task] >> extract_deputados_task >> extract_gastos_task
+
+
+def capturando_dados_gastos_2024():
+    url_gastos_2024 = "https://www.camara.leg.br/cotas/Ano-2024.csv.zip"
+    logging.warning(url_gastos_2024)
+    try:
+        response = requests.get(url_gastos_2024)
+        if response.status_code == 200:
+            csv_data = response.content.decode('utf-8')
+            return csv_data
+    except Exception as e:
+            logging.error(e)
+
+
+extract_gastos_2024_task = PythonOperator(
+    task_id='extract_gastos_2024',
+    python_callable=capturando_dados_gastos_2024,
+    provide_context=True,
+    dag=dag
+)
+
+
+[create_table_gastos_task, create_table_deputados_task] >> extract_deputados_task >> [extract_gastos_2023_task,extract_gastos_2024_task]

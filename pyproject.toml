@@ -11,6 +11,7 @@ isort = "^5.13.2"
 pip-audit = "^2.7.2"
 taskipy = "^1.12.2"
 pre-commit = "^3.7.0"
+pandas = "^2.2.2"
 
 [tool.poetry.dev-dependencies]
 
