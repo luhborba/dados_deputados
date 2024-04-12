@@ -137,7 +137,13 @@ def capturando_dados_gastos():
     dados_gastos_2024 = baixar_arquivos_zip(url_gastos_2024)
     dados_gastos_2023 = baixar_arquivos_zip(ult_gastos_2023)
 
-    return dados_gastos_2024, dados_gastos_2023
+    gastos_2023 = pd.read_csv(dados_gastos_2023)
+    gastos_2024 = pd.read_csv(dados_gastos_2024)
+
+    gastos = pd.concat(gastos_2023, gastos_2024)
+
+
+    return gastos
 
 extract_gastos_task = PythonOperator(
     task_id='extract_gastos_task',
